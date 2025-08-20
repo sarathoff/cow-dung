@@ -1,98 +1,161 @@
-import { ConnectButton } from "thirdweb/react";
-import thirdwebIcon from "./thirdweb.svg";
-import { client } from "./client";
+import { Web3Button, useAddress, useContract, inAppWallet, ThirdwebProvider, ConnectWallet } from "@thirdweb-dev/react";
+import React, { useState } from "react";
 
-export function App() {
-	return (
-		<main className="p-4 pb-10 min-h-[100vh] flex items-center justify-center container max-w-screen-lg mx-auto">
-			<div className="py-20">
-				<Header />
-
-				<div className="flex justify-center mb-20">
-					<ConnectButton
-						client={client}
-						appMetadata={{
-							name: "Example app",
-							url: "https://example.com",
-						}}
-					/>
-				</div>
-
-				<ThirdwebResources />
-			</div>
-		</main>
-	);
+// This CSS is now included directly in the component to avoid import errors.
+const styles = `
+.container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  text-align: center;
+  background-color: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  border: 1px solid #e5e7eb;
 }
 
-function Header() {
-	return (
-		<header className="flex flex-col items-center mb-20 md:mb-20">
-			<img
-				src={thirdwebIcon}
-				alt=""
-				className="size-[150px] md:size-[150px]"
-				style={{
-					filter: "drop-shadow(0px 0px 24px #a726a9a8)",
-				}}
-			/>
-
-			<h1 className="text-2xl md:text-6xl font-bold tracking-tighter mb-6 text-zinc-100">
-				thirdweb SDK
-				<span className="text-zinc-300 inline-block mx-1"> + </span>
-				<span className="inline-block -skew-x-6 text-violet-500"> vite </span>
-			</h1>
-
-			<p className="text-zinc-300 text-base">
-				Read the{" "}
-				<code className="bg-zinc-800 text-zinc-300 px-2 rounded py-1 text-sm mx-1">
-					README.md
-				</code>{" "}
-				file to get started.
-			</p>
-		</header>
-	);
+.header {
+  margin-bottom: 2rem;
 }
 
-function ThirdwebResources() {
-	return (
-		<div className="grid gap-4 lg:grid-cols-3 justify-center">
-			<ArticleCard
-				title="thirdweb SDK Docs"
-				href="https://portal.thirdweb.com/typescript/v5"
-				description="thirdweb TypeScript SDK documentation"
-			/>
-
-			<ArticleCard
-				title="Components and Hooks"
-				href="https://portal.thirdweb.com/typescript/v5/react"
-				description="Learn about the thirdweb React components and hooks in thirdweb SDK"
-			/>
-
-			<ArticleCard
-				title="thirdweb Dashboard"
-				href="https://thirdweb.com/dashboard"
-				description="Deploy, configure, and manage your smart contracts from the dashboard."
-			/>
-		</div>
-	);
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #111827;
 }
 
-function ArticleCard(props: {
-	title: string;
-	href: string;
-	description: string;
-}) {
-	return (
-		<a
-			href={`${props.href}?utm_source=vite-template`}
-			target="_blank"
-			className="flex flex-col border border-zinc-800 p-4 rounded-lg hover:bg-zinc-900 transition-colors hover:border-zinc-700"
-			rel="noreferrer"
-		>
-			<article>
-				<h2 className="text-lg font-semibold mb-2">{props.title}</h2>
-				<p className="text-sm text-zinc-400">{props.description}</p>
-			</article>
-		</a>
-	);
+.description {
+  color: #4b5563;
+  margin-top: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.mint-form {
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.mint-form h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #111827;
+}
+
+.input-field {
+  width: calc(100% - 24px);
+  padding: 12px;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+.mint-button {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+}
+
+.mint-button:hover {
+  background-color: #1d4ed8;
+}
+`;
+
+// PASTE YOUR DEPLOYED CONTRACT ADDRESS HERE
+const contractAddress = "YOUR_CONTRACT_ADDRESS_HERE";
+// PASTE YOUR CLIENT ID HERE
+const clientId = "YOUR_CLIENT_ID_HERE";
+
+export default function App() {
+  const address = useAddress();
+  const { contract } = useContract(contractAddress);
+  const [farmerName, setFarmerName] = useState<string>("");
+  const [weight, setWeight] = useState<string>("");
+
+  const resetForm = () => {
+    setFarmerName("");
+    setWeight("");
+  };
+
+  return (
+    <ThirdwebProvider>
+      <div>
+        <style>{styles}</style>
+        <div className="container">
+          <div className="header">
+            <h1 className="title">🐮 DungTrace</h1>
+            <p className="description">
+              A transparent supply chain for agricultural exports.
+            </p>
+            <ConnectWallet
+              theme="light"
+              style={{ marginTop: "20px", display: 'block', margin: '20px auto 0' }}
+            />
+          </div>
+
+        {address && (
+          <div className="mint-form">
+            <h2>Register a New Batch</h2>
+            <input
+              type="text"
+              placeholder="Farmer's Name"
+              value={farmerName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFarmerName(e.target.value)}
+              className="input-field"
+            />
+            <input
+              type="number"
+              placeholder="Weight (KG)"
+              value={weight}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
+              className="input-field"
+            />
+            
+            <Web3Button
+              contractAddress={contractAddress}
+              action={(contract) => contract.erc721.mint({
+                name: `Batch from ${farmerName}`,
+                description: `A high-quality batch of organic cow dung.`,
+                image: "ipfs://bafkreihg53o5v2f2y2xj2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j/placeholder.png",
+                properties: [
+                  { trait_type: "Weight (KG)", value: weight },
+                  { trait_type: "Origin", value: "Tindivanam Farms" },
+                ],
+              })}
+              onSuccess={() => {
+                alert("NFT Minted Successfully!");
+                resetForm();
+              }}
+              onError={(error) => {
+                alert("Error minting NFT: " + error.message);
+              }}
+              className="mint-button"
+            >
+              Create Batch NFT
+            </Web3Button>
+          </div>
+        )}
+      </div>
+    </div> 
+	      </ThirdwebProvider>
+  );
 }
