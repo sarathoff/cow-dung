@@ -1,7 +1,6 @@
-import { Web3Button, useAddress, useContract, inAppWallet, ThirdwebProvider, ConnectWallet } from "@thirdweb-dev/react";
 import React, { useState } from "react";
 
-// This CSS is now included directly in the component to avoid import errors.
+// This CSS is now included directly in the component.
 const styles = `
 .container {
   max-width: 600px;
@@ -62,7 +61,7 @@ const styles = `
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
 }
 
-.mint-button {
+.submit-button {
   background-color: #2563eb;
   color: white;
   border: none;
@@ -75,87 +74,95 @@ const styles = `
   width: 100%;
 }
 
-.mint-button:hover {
+.submit-button:hover {
   background-color: #1d4ed8;
+}
+
+.status-message {
+    margin-top: 1.5rem;
+    font-weight: 500;
 }
 `;
 
-// PASTE YOUR DEPLOYED CONTRACT ADDRESS HERE
-const contractAddress = "YOUR_CONTRACT_ADDRESS_HERE";
-// PASTE YOUR CLIENT ID HERE
-const clientId = "YOUR_CLIENT_ID_HERE";
-
 export default function App() {
-  const address = useAddress();
-  const { contract } = useContract(contractAddress);
   const [farmerName, setFarmerName] = useState<string>("");
   const [weight, setWeight] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const resetForm = () => {
-    setFarmerName("");
-    setWeight("");
+  const handleSubmit = async () => {
+    if (!farmerName || !weight) {
+      setStatus("Please fill out all fields.");
+      return;
+    }
+    setIsLoading(true);
+    setStatus("Submitting to the blockchain...");
+
+    try {
+      // This sends the data to our new backend server
+      const response = await fetch('http://localhost:3001/mint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ farmerName, weight })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setStatus(`✅ Success! View Transaction: <a href="${result.url}" target="_blank">Click Here</a>`);
+        setFarmerName("");
+        setWeight("");
+      } else {
+        throw new Error(result.error || "An unknown error occurred.");
+      }
+    } catch (error: any) {
+      setStatus(`❌ Error: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <ThirdwebProvider>
-      <div>
-        <style>{styles}</style>
-        <div className="container">
-          <div className="header">
-            <h1 className="title">🐮 DungTrace</h1>
-            <p className="description">
-              A transparent supply chain for agricultural exports.
-            </p>
-            <ConnectWallet
-              theme="light"
-              style={{ marginTop: "20px", display: 'block', margin: '20px auto 0' }}
-            />
-          </div>
+    <div>
+      <style>{styles}</style>
+      <div className="container">
+        <div className="header">
+          <h1 className="title">🐮 DungTrace</h1>
+          <p className="description">
+            A transparent supply chain for agricultural exports.
+          </p>
+        </div>
 
-        {address && (
-          <div className="mint-form">
-            <h2>Register a New Batch</h2>
-            <input
-              type="text"
-              placeholder="Farmer's Name"
-              value={farmerName}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFarmerName(e.target.value)}
-              className="input-field"
-            />
-            <input
-              type="number"
-              placeholder="Weight (KG)"
-              value={weight}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
-              className="input-field"
-            />
-            
-            <Web3Button
-              contractAddress={contractAddress}
-              action={(contract) => contract.erc721.mint({
-                name: `Batch from ${farmerName}`,
-                description: `A high-quality batch of organic cow dung.`,
-                image: "ipfs://bafkreihg53o5v2f2y2xj2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j/placeholder.png",
-                properties: [
-                  { trait_type: "Weight (KG)", value: weight },
-                  { trait_type: "Origin", value: "Tindivanam Farms" },
-                ],
-              })}
-              onSuccess={() => {
-                alert("NFT Minted Successfully!");
-                resetForm();
-              }}
-              onError={(error) => {
-                alert("Error minting NFT: " + error.message);
-              }}
-              className="mint-button"
-            >
-              Create Batch NFT
-            </Web3Button>
-          </div>
-        )}
+        <div className="mint-form">
+          <h2>Register a New Batch</h2>
+          <input
+            type="text"
+            placeholder="Farmer's Name"
+            value={farmerName}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFarmerName(e.target.value)}
+            className="input-field"
+          />
+          <input
+            type="number"
+            placeholder="Weight (KG)"
+            value={weight}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
+            className="input-field"
+          />
+          
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className="submit-button"
+          >
+            {isLoading ? "Submitting..." : "Create Batch Record"}
+          </button>
+
+          {status && (
+            <p className="status-message" dangerouslySetInnerHTML={{ __html: status }}></p>
+          )}
+        </div>
       </div>
-    </div> 
-	      </ThirdwebProvider>
+    </div>
   );
 }

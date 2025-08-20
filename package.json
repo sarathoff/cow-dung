@@ -11,6 +11,8 @@
   "dependencies": {
     "@thirdweb-dev/react": "^4.9.4",
     "@thirdweb-dev/sdk": "^4.0.99",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
     "lucide-react": "^0.540.0",
     "react": "^18.3",
     "react-dom": "^18.3",
