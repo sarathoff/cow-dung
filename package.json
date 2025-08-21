@@ -9,8 +9,10 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.6",
     "@thirdweb-dev/react": "^4.9.4",
     "@thirdweb-dev/sdk": "^4.0.99",
+    "@yudiel/react-qr-scanner": "^2.3.1",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "lucide-react": "^0.540.0",
