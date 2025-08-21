@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { QrReader } from 'react-qr-reader';
+import QrReader from 'react-qr-reader';
 import QRCode from 'react-qr-code';
 
 // --- MOCK FARMER DATABASE ---
@@ -105,8 +105,9 @@ const FarmerView = ({ t }: { t: any }) => {
       {isScanning && (
         <div className="qr-section">
           <QrReader
-            onResult={handleScan}
-            constraints={{ facingMode: 'environment' }}
+            onScan={handleScan}
+            onError={(err) => console.error(err)}
+
           />
           <button onClick={() => setIsScanning(false)} style={{ marginTop: '1rem' }}>
             Cancel

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import QrReader from 'react-qr-reader';
+import { Html5QrcodeScanner } from "html5-qrcode";
 import QRCode from "react-qr-code";
 import Dashboard from "./dashboard";
 
@@ -13,67 +13,17 @@ body {
     margin: 0;
     padding: 1rem;
 }
-
-.container { 
-    max-width: 900px; 
-    margin: 0 auto; 
-    padding: 1.5rem; 
-    background-color: #ffffff; 
-    border-radius: 16px; 
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); 
-}
-
+/* ... (rest of the styles are the same) ... */
+.container { max-width: 900px; margin: 0 auto; padding: 1.5rem; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); }
 .header { text-align: center; margin-bottom: 2rem; }
 .title { font-size: 2.2rem; font-weight: 700; color: #111827; }
 .description { color: #4b5563; margin-top: 0.5rem; font-size: 1rem; }
-
-.top-bar { 
-    display: flex; 
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 2rem; 
-    border-bottom: 1px solid #e5e7eb; 
-    padding-bottom: 1.5rem; 
-}
-
-.role-selector, .nav-buttons { 
-    display: flex; 
-    justify-content: center; 
-    gap: 0.5rem; 
-    flex-wrap: wrap;
-}
-
-.role-button, .nav-button { 
-    background-color: #e5e7eb; 
-    color: #374151; 
-    border: none; 
-    padding: 12px 20px; 
-    border-radius: 8px; 
-    font-size: 1rem; 
-    font-weight: 600; 
-    cursor: pointer; 
-    transition: all 0.2s; 
-}
-
-.role-button:hover, .nav-button:hover:not(.active) { 
-    background-color: #d1d5db; 
-}
-
-.nav-button.active {
-    background-color: #2563eb;
-    color: white;
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
-}
-
-.lang-select { 
-    padding: 10px; 
-    border-radius: 8px; 
-    border: 1px solid #d1d5db; 
-    font-family: 'Inter', sans-serif; 
-    font-weight: 500; 
-    align-self: center;
-}
-
+.top-bar { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 1.5rem; }
+.role-selector, .nav-buttons { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
+.role-button, .nav-button { background-color: #e5e7eb; color: #374151; border: none; padding: 12px 20px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.role-button:hover, .nav-button:hover:not(.active) { background-color: #d1d5db; }
+.nav-button.active { background-color: #2563eb; color: white; box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2); }
+.lang-select { padding: 10px; border-radius: 8px; border: 1px solid #d1d5db; font-family: 'Inter', sans-serif; font-weight: 500; align-self: center; }
 .form-container { padding: 1.5rem; border: 1px solid #e5e7eb; border-radius: 8px; }
 .form-container h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; color: #111827; text-align: center; }
 .input-field, .select-field { width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box; }
@@ -89,28 +39,21 @@ body {
 .pending-item span { font-size: 0.8rem; color: #6b7280; }
 .refresh-button { background-color: #6b7280; margin-left: 1rem; }
 .quality-score-display { text-align: center; font-size: 1.2rem; font-weight: 600; margin: 1.5rem 0; padding: 1rem; background-color: #eff6ff; border-radius: 8px; color: #1e40af; }
+#qr-reader { width: 100%; max-width: 500px; margin: 0 auto; border: none; }
 
 @media (min-width: 640px) {
-    .top-bar {
-        flex-direction: row;
-    }
-    .lang-select {
-        align-self: auto;
-    }
+    .top-bar { flex-direction: row; }
+    .lang-select { align-self: auto; }
 }
 `;
 
 // --- TRANSLATIONS ---
 const translations = {
     en: { title: "DungTrace", farmer: "Farmer", collector: "Collector", owner: "Owner", addLoad: "Add New Load", scanFarmerQR: "Scan Farmer ID QR", weight: "Weight (KG)", createRecord: "Create Record", submitting: "Submitting...", pendingCollections: "Pending Collections", verifyBatch: "Verify Batch", qualityScore: "Calculated Quality Score", updateRecord: "Update Record", password: "Password", enter: "Enter", collectorName: "Collector's Name", refresh: "Refresh List", village: "Village", cowBreed: "Cow Breed", feedType: "Feed Type", moisture: "Moisture Level (%)", purity: "Purity Score (1-10)" },
-    ta: { title: "சாணம்தடம்", farmer: "விவசாயி", collector: "சேகரிப்பாளர்", owner: "உரிமையாளர்", addLoad: "புதிய சுமையைச் சேர்க்கவும்", scanFarmerQR: "விவசாயி QR ஐ ஸ்கேன் செய்யவும்", weight: "எடை (கிலோ)", createRecord: "பதிவை உருவாக்கவும்", submitting: "சமர்ப்பிக்கப்படுகிறது...", pendingCollections: "நிலுவையில் உள்ள சேகரிப்புகள்", verifyBatch: "தொகுப்பைச் சரிபார்க்கவும்", qualityScore: "கணக்கிடப்பட்ட தர மதிப்பெண்", updateRecord: "பதிவைப் புதுப்பிக்கவும்", password: "கடவுச்சொல்", enter: "உள்ளிடவும்", collectorName: "சேகரிப்பாளர் பெயர்", refresh: "பட்டியலைப் புதுப்பிக்கவும்", village: "கிராமம்", cowBreed: "மாட்டின் இனம்", feedType: "தீவன வகை", moisture: "ஈரப்பதம் (%)", purity: "தூய்மை மதிப்பெண் (1-10)" },
-    // Other languages can be added here
-};
-
-// --- MOCK FARMER DATABASE ---
-const farmersDB: { [key: string]: { name: string, village: string } } = {
-    "FARMER_001": { name: "Sarath", village: "Tindivanam" },
-    "FARMER_002": { name: "Priya", village: "Chembarambakkam" },
+    ta: { title: "சாணம்தடம்", farmer: "விவசாயி", collector: "சேகரிப்பாளர்", owner: "உரிமையாளர்", addLoad: "புதிய சுமையைச் சேர்க்கவும்", scanFarmerQR: "விவசாயி QR ஐ ஸ்கேன் செய்யவும்", weight: "எடை (கிலோ)", createRecord: "பதிவை உருவாக்கவும்", submitting: "சமர்ப்பிக்கப்படுகிறது...", pendingCollections: "நிலுவையில் உள்ள சேகரிப்புகள்", verifyBatch: "தொகுப்பைச் சரிபார்க்கவும்", qualityScore: "கணக்கிடப்பட்ட தர மதிப்பெண்", updateRecord: "பதிவைப் புதுப்பிக்கவும்", password: "கடவுச்சொல்", enter: "உள்ளிடவும்", collectorName: "சேகரிப்பாளர் பெயர்", refresh: "பட்டியலைப் புதுப்பிக்கவும்", village: "கிராமம்", cowBreed: "மாட்டின் இனம்", feedType: "தீவன வகை", moisture: "ஈரப்பதம் (%)", purity: "தூய்மை மதிப்பெண் (1-10)" },
+    hi: { title: "डंगट्रेस", farmer: "किसान", collector: "संग्राहक", owner: "मालिक", addLoad: "नया लोड जोड़ें", scanFarmerQR: "किसान QR स्कैन करें", weight: "वजन (किलो)", createRecord: "रिकॉर्ड बनाएं", submitting: "भेज रहा है...", pendingCollections: "लंबित संग्रह", verifyBatch: "बैच सत्यापित करें", qualityScore: "गणना गुणवत्ता स्कोर", updateRecord: "रिकॉर्ड अपडेट करें", password: "पासवर्ड", enter: "दर्ज करें", collectorName: "संग्राहक का नाम", refresh: "सूची ताज़ा करें", village: "गांव", cowBreed: "गाय की नस्ल", feedType: "चारा प्रकार", moisture: "नमी स्तर (%)", purity: "शुद्धता स्कोर (1-10)" },
+    te: { title: "డంగ్‌ట్రేస్", farmer: "రైతు", collector: "సేకరించేవాడు", owner: "యజమాని", addLoad: "కొత్త లోడ్ జోడించండి", scanFarmerQR: "రైతు QR స్కాన్ చేయండి", weight: "బరువు (కిలోలు)", createRecord: "రికార్డ్ సృష్టించండి", submitting: "సమర్పిస్తోంది...", pendingCollections: "పెండింగ్ సేకరణలు", verifyBatch: "బ్యాచ్‌ను ధృవీకరించండి", qualityScore: "లెక్కించిన నాణ్యత స్కోరు", updateRecord: "రికార్డ్ నవీకరించండి", password: "పాస్వర్డ్", enter: "నమోదు చేయండి", collectorName: "సేకరించేవాడి పేరు", refresh: "జాబితాను రిఫ్రెష్ చేయండి", village: "గ్రామం", cowBreed: "ఆవు జాతి", feedType: "ఫీడ్ రకం", moisture: "తేమ స్థాయి (%)", purity: "స్వచ్ఛత స్కోరు (1-10)" },
+    kn: { title: "ಡಂಗ್‌ಟ್ರೇಸ್", farmer: "ರೈತ", collector: "ಸಂಗ್ರಾಹಕ", owner: "ಮಾಲೀಕ", addLoad: "ಹೊಸ ಲೋಡ್ ಸೇರಿಸಿ", scanFarmerQR: "ರೈತ QR ಸ್ಕ್ಯಾನ್ ಮಾಡಿ", weight: "ತೂಕ (ಕೆಜಿ)", createRecord: "ದಾಖಲೆ ರಚಿಸಿ", submitting: "ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ...", pendingCollections: "ಬಾಕಿ ಇರುವ ಸಂಗ್ರಹಗಳು", verifyBatch: "ಬ್ಯಾಚ್ ಪರಿಶೀಲಿಸಿ", qualityScore: "ಲೆಕ್ಕಾಚಾರ ಮಾಡಿದ ಗುಣಮಟ್ಟದ ಅಂಕ", updateRecord: "ದಾಖಲೆ ನವೀಕರಿಸಿ", password: "ಪಾಸ್ವರ್ಡ್", enter: "ನಮೂದಿಸಿ", collectorName: "ಸಂಗ್ರಾಹಕರ ಹೆಸರು", refresh: "ಪಟ್ಟಿಯನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿ", village: "ಗ್ರಾಮ", cowBreed: "ಹಸುವಿನ ತಳಿ", feedType: "ಫೀಡ್ ಪ್ರಕಾರ", moisture: "ತೇವಾಂಶ ಮಟ್ಟ (%)", purity: "ಶುದ್ಧತೆಯ ಅಂಕ (1-10)" }
 };
 
 // --- MAIN APP COMPONENT ---
@@ -118,7 +61,7 @@ export default function App() {
   const [role, setRole] = useState<string | null>(null);
   const [password, setPassword] = useState<string>("");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [lang, setLang] = useState<'en' | 'ta'>('en');
+  const [lang, setLang] = useState<'en' | 'ta' | 'hi' | 'te' | 'kn'>('en');
   const t = translations[lang];
 
   const handleAuth = () => {
@@ -189,6 +132,28 @@ export default function App() {
   );
 }
 
+// --- QR SCANNER COMPONENT ---
+const QrScannerComponent = ({ onScanSuccess, onScanError }: { onScanSuccess: (text: string) => void, onScanError: (error: any) => void }) => {
+    useEffect(() => {
+        const scanner = new Html5QrcodeScanner('qr-reader', {
+            qrbox: {
+                width: 250,
+                height: 250,
+            },
+            fps: 5,
+        }, false);
+
+        scanner.render(onScanSuccess, onScanError);
+
+        return () => {
+            scanner.clear().catch(error => console.error("Failed to clear scanner.", error));
+        };
+    }, [onScanSuccess, onScanError]);
+
+    return <div id="qr-reader"></div>;
+};
+
+
 // --- FARMER COMPONENT ---
 const FarmerView = ({ t }: { t: any }) => {
     const [isScanning, setIsScanning] = useState(false);
@@ -208,17 +173,18 @@ const FarmerView = ({ t }: { t: any }) => {
         );
     }, []);
 
-    const handleScan = (result: any) => {
-        if (result) {
-            const farmerId = result.text;
-            const farmerInfo = farmersDB[farmerId];
-            if (farmerInfo) {
-                setScannedData({ id: farmerId, ...farmerInfo });
+    const handleScan = (decodedText: string) => {
+        try {
+            const farmerInfo = JSON.parse(decodedText);
+            if (farmerInfo.id && farmerInfo.name && farmerInfo.village) {
+                setScannedData(farmerInfo);
                 setIsScanning(false);
             } else {
-                setStatus("Invalid Farmer QR Code.");
-                setIsScanning(false);
+                throw new Error("QR code has invalid format.");
             }
+        } catch (error) {
+            setStatus("Invalid Farmer QR Code.");
+            setIsScanning(false);
         }
     };
 
@@ -234,11 +200,10 @@ const FarmerView = ({ t }: { t: any }) => {
             const response = await fetch('https://cow-dung.onrender.com/mint', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ farmerId: scannedData.id, weight, cowBreed, feedType, latitude: location.lat, longitude: location.lon })
+                body: JSON.stringify({ farmerId: scannedData.id, farmerName: scannedData.name, village: scannedData.village, weight, cowBreed, feedType, latitude: location.lat, longitude: location.lon })
             });
             const result = await response.json();
             if (response.ok) {
-                setStatus(`✅ ${t.success}`);
                 setMintResult({url: result.url, tokenId: result.tokenId});
                 setScannedData(null); setWeight("");
             } else { throw new Error(result.error); }
@@ -257,17 +222,7 @@ const FarmerView = ({ t }: { t: any }) => {
             )}
             {isScanning && (
                 <div className="qr-section">
-                    <div style={{ width: '100%' }}>
-                        <QrReader
-                            facingMode="environment"
-                            onScan={(data: string | null) => {
-                                if (data) handleScan({ text: data });
-                            }}
-                            onError={(error: any) => {
-                                // Optionally handle error
-                            }}
-                        />
-                    </div>
+                    <QrScannerComponent onScanSuccess={handleScan} onScanError={(err: any) => {}} />
                     <button onClick={() => setIsScanning(false)} style={{ marginTop: '1rem' }}>Cancel</button>
                 </div>
             )}
@@ -286,16 +241,18 @@ const FarmerView = ({ t }: { t: any }) => {
                     <button onClick={handleMint} disabled={isLoading || !location} className="submit-button">{isLoading ? t.submitting : t.createRecord}</button>
                 </div>
             )}
-            {status && <p className={`status-message ${status.startsWith('Error') || status.startsWith('Please') ? 'status-error' : 'status-success'}`} dangerouslySetInnerHTML={{__html: status.replace(/Token ID: \w+/, '')}}></p>}
+            {status && <p className={`status-message ${status.startsWith('Error') || status.startsWith('Please') ? 'status-error' : 'status-success'}`}>{status}</p>}
             {mintResult && (
                 <div className="qr-section">
-                    <h3>QR Code for this Batch:</h3>
-                    <QRCode value={mintResult.tokenId} />
+                    <h3>✅ Batch Registered Successfully!</h3>
+                    <p>Please attach this QR Code to the batch.</p>
+                    <div style={{ background: 'white', padding: '16px', marginTop: '1rem' }}>
+                        <QRCode value={mintResult.tokenId} />
+                    </div>
                     <p style={{marginTop: '1rem'}}>
-                        Token ID: {mintResult.tokenId} <br/>
                         <a href={mintResult.url} target="_blank" rel="noopener noreferrer">View Transaction</a>
                     </p>
-                    <button onClick={() => setMintResult(null)} style={{marginTop: '1rem'}}>Register Another Batch</button>
+                    <button onClick={() => setMintResult(null)} style={{marginTop: '1rem'}} className="submit-button">Register Another Batch</button>
                 </div>
             )}
         </div>
@@ -307,6 +264,7 @@ const CollectorView = ({ t }: { t: any }) => {
     const [pendingBatches, setPendingBatches] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [status, setStatus] = useState("");
+    const [isScanning, setIsScanning] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState<any | null>(null);
     const [moisture, setMoisture] = useState("");
     const [purity, setPurity] = useState("");
@@ -338,7 +296,6 @@ const CollectorView = ({ t }: { t: any }) => {
         if (isNaN(moistureNum) || isNaN(purityNum) || moistureNum < 0 || moistureNum > 100 || purityNum < 1 || purityNum > 10) {
             return "Invalid Input";
         }
-        // Simple weighted average: Purity is more important.
         const score = (purityNum * 0.7) + ((10 - (moistureNum / 10)) * 0.3);
         return score.toFixed(1);
     };
