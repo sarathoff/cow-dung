@@ -257,7 +257,14 @@ const FarmerView = ({ t }: { t: any }) => {
             )}
             {isScanning && (
                 <div className="qr-section">
-                    <QrReader onResult={handleScan} constraints={{ facingMode: 'environment' }} />
+                    <div style={{ width: '100%' }}>
+                        <QrReader
+                            constraints={{ facingMode: 'environment' }}
+                            onResult={(result, error) => {
+                                if (result) handleScan(result);
+                            }}
+                        />
+                    </div>
                     <button onClick={() => setIsScanning(false)} style={{ marginTop: '1rem' }}>Cancel</button>
                 </div>
             )}

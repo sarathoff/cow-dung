@@ -19,11 +19,13 @@
     "react": "^18.3",
     "react-dom": "^18.3",
     "react-qr-code": "^2.0.18",
+    "react-qr-reader": "^3.0.0-beta-1",
     "thirdweb": "^5"
   },
   "devDependencies": {
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
+    "@types/react-qr-reader": "^2.1.7",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
     "@typescript-eslint/parser": "^7.0.2",
     "@vitejs/plugin-react": "^4.2.1",
