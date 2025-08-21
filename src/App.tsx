@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import QrReader from 'react-qr-reader';
+import { QrReader } from 'react-qr-reader';
 import QRCode from "react-qr-code";
 import Dashboard from "./dashboard";
 
