@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { QrReader } from 'react-qr-reader';
 import QRCode from "react-qr-code";
-import Dashboard from "./Dashboard";
+import Dashboard from "./dashboard";
 
 // --- STYLES (Mobile-First & Responsive) ---
 const styles = `
