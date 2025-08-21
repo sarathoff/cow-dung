@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { QrReader } from 'react-qr-reader';
+import QrReader from 'react-qr-reader';
 import QRCode from "react-qr-code";
 import Dashboard from "./dashboard";
 
@@ -259,9 +259,12 @@ const FarmerView = ({ t }: { t: any }) => {
                 <div className="qr-section">
                     <div style={{ width: '100%' }}>
                         <QrReader
-                            constraints={{ facingMode: 'environment' }}
-                            onResult={(result, error) => {
-                                if (result) handleScan(result);
+                            facingMode="environment"
+                            onScan={(data: string | null) => {
+                                if (data) handleScan({ text: data });
+                            }}
+                            onError={(error: any) => {
+                                // Optionally handle error
                             }}
                         />
                     </div>
