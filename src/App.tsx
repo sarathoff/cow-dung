@@ -1,304 +1,402 @@
-import React, { useState } from "react";
-import Dashboard from "./dashboard"; // Import the new Dashboard component
-import { QrReader } from 'react-qr-reader'; // Import QR Reader
+import React, { useState, useEffect, useCallback } from "react";
+import { QrReader } from 'react-qr-reader';
+import QRCode from "react-qr-code";
+import Dashboard from "./Dashboard";
 
-// This CSS is now included directly in the component.
+// --- STYLES (Mobile-First & Responsive) ---
 const styles = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-.container {
-  max-width: 900px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background-color: #f9fafb;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  font-family: 'Inter', sans-serif; /* Applied Inter font here */
-  border: 1px solid #e5e7eb;
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: #f3f4f6; 
+    margin: 0;
+    padding: 1rem;
 }
 
-.header {
-  text-align: center;
-  margin-bottom: 2rem;
+.container { 
+    max-width: 900px; 
+    margin: 0 auto; 
+    padding: 1.5rem; 
+    background-color: #ffffff; 
+    border-radius: 16px; 
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05); 
 }
 
-.title {
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #111827;
-}
+.header { text-align: center; margin-bottom: 2rem; }
+.title { font-size: 2.2rem; font-weight: 700; color: #111827; }
+.description { color: #4b5563; margin-top: 0.5rem; font-size: 1rem; }
 
-.description {
-  color: #4b5563;
-  margin-top: 0.5rem;
-  font-size: 1.1rem;
-}
-
-.nav-buttons {
-    display: flex;
-    justify-content: center;
+.top-bar { 
+    display: flex; 
+    flex-direction: column;
     gap: 1rem;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid #e5e7eb;
-    padding-bottom: 1.5rem;
+    margin-bottom: 2rem; 
+    border-bottom: 1px solid #e5e7eb; 
+    padding-bottom: 1.5rem; 
 }
 
-.nav-button {
-    background-color: #ffffff;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+.role-selector, .nav-buttons { 
+    display: flex; 
+    justify-content: center; 
+    gap: 0.5rem; 
+    flex-wrap: wrap;
 }
 
-.nav-button:hover:not(.active) {
-    background-color: #f3f4f6;
+.role-button, .nav-button { 
+    background-color: #e5e7eb; 
+    color: #374151; 
+    border: none; 
+    padding: 12px 20px; 
+    border-radius: 8px; 
+    font-size: 1rem; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+}
+
+.role-button:hover, .nav-button:hover:not(.active) { 
+    background-color: #d1d5db; 
 }
 
 .nav-button.active {
     background-color: #2563eb;
     color: white;
-    border-color: #2563eb;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
 }
 
-.mint-form {
-  padding: 2rem;
-  background-color: #ffffff;
-  border-radius: 8px;
+.lang-select { 
+    padding: 10px; 
+    border-radius: 8px; 
+    border: 1px solid #d1d5db; 
+    font-family: 'Inter', sans-serif; 
+    font-weight: 500; 
+    align-self: center;
 }
 
-.mint-form h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #111827;
-  text-align: center;
-}
+.form-container { padding: 1.5rem; border: 1px solid #e5e7eb; border-radius: 8px; }
+.form-container h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; color: #111827; text-align: center; }
+.input-field, .select-field { width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #d1d5db; font-size: 16px; box-sizing: border-box; }
+.submit-button { background-color: #2563eb; color: white; border: none; padding: 14px 24px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; }
+.submit-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.status-message { margin-top: 1.5rem; font-weight: 500; text-align: center; padding: 1rem; border-radius: 8px; word-break: break-word; }
+.status-success { background-color: #d1fae5; color: #065f46; }
+.status-error { background-color: #fee2e2; color: #991b1b; }
+.qr-section { margin-top: 2rem; padding: 1.5rem; border: 2px dashed #d1d5db; border-radius: 8px; text-align: center; }
+.pending-list { list-style: none; padding: 0; }
+.pending-item { background-color: #f9fafb; padding: 1rem; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid #e5e7eb; cursor: pointer; transition: background-color 0.2s; }
+.pending-item:hover { background-color: #eff6ff; }
+.pending-item span { font-size: 0.8rem; color: #6b7280; }
+.refresh-button { background-color: #6b7280; margin-left: 1rem; }
+.quality-score-display { text-align: center; font-size: 1.2rem; font-weight: 600; margin: 1.5rem 0; padding: 1rem; background-color: #eff6ff; border-radius: 8px; color: #1e40af; }
 
-.input-field {
-  width: calc(100% - 24px);
-  padding: 12px;
-  margin-bottom: 1rem;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 16px;
-  box-sizing: border-box; /* Ensures padding doesn't increase width */
-}
-
-.submit-button, .qr-button {
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  padding: 14px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.3s ease;
-}
-
-.qr-button {
-    background-color: #10b981; /* A different color for QR button */
-    margin-bottom: 1rem;
-}
-
-.qr-button:hover:not(:disabled) {
-    background-color: #059669;
-}
-
-.submit-button:hover:not(:disabled), .cancel-qr-button:hover {
-    background-color: #1d4ed8;
-}
-
-.submit-button:disabled, .qr-button:disabled, .cancel-qr-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.cancel-qr-button {
-    background-color: #ef4444; /* Red color for cancel */
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 1rem;
-}
-
-.status-message {
-    margin-top: 1.5rem;
-    font-weight: 500;
-    text-align: center;
-    color: #374151;
-}
-
-.qr-scanner-container {
-    margin-top: 1.5rem;
-    padding: 1rem;
-    border: 1px dashed #d1d5db;
-    border-radius: 8px;
-    text-align: center;
-}
-
-.qr-scanner-info {
-    color: #4b5563;
-    font-size: 0.9rem;
-    margin-bottom: 0.5rem;
+@media (min-width: 640px) {
+    .top-bar {
+        flex-direction: row;
+    }
+    .lang-select {
+        align-self: auto;
+    }
 }
 `;
 
+// --- TRANSLATIONS ---
+const translations = {
+    en: { title: "DungTrace", farmer: "Farmer", collector: "Collector", owner: "Owner", addLoad: "Add New Load", scanFarmerQR: "Scan Farmer ID QR", weight: "Weight (KG)", createRecord: "Create Record", submitting: "Submitting...", pendingCollections: "Pending Collections", verifyBatch: "Verify Batch", qualityScore: "Calculated Quality Score", updateRecord: "Update Record", password: "Password", enter: "Enter", collectorName: "Collector's Name", refresh: "Refresh List", village: "Village", cowBreed: "Cow Breed", feedType: "Feed Type", moisture: "Moisture Level (%)", purity: "Purity Score (1-10)" },
+    ta: { title: "சாணம்தடம்", farmer: "விவசாயி", collector: "சேகரிப்பாளர்", owner: "உரிமையாளர்", addLoad: "புதிய சுமையைச் சேர்க்கவும்", scanFarmerQR: "விவசாயி QR ஐ ஸ்கேன் செய்யவும்", weight: "எடை (கிலோ)", createRecord: "பதிவை உருவாக்கவும்", submitting: "சமர்ப்பிக்கப்படுகிறது...", pendingCollections: "நிலுவையில் உள்ள சேகரிப்புகள்", verifyBatch: "தொகுப்பைச் சரிபார்க்கவும்", qualityScore: "கணக்கிடப்பட்ட தர மதிப்பெண்", updateRecord: "பதிவைப் புதுப்பிக்கவும்", password: "கடவுச்சொல்", enter: "உள்ளிடவும்", collectorName: "சேகரிப்பாளர் பெயர்", refresh: "பட்டியலைப் புதுப்பிக்கவும்", village: "கிராமம்", cowBreed: "மாட்டின் இனம்", feedType: "தீவன வகை", moisture: "ஈரப்பதம் (%)", purity: "தூய்மை மதிப்பெண் (1-10)" },
+    // Other languages can be added here
+};
+
+// --- MOCK FARMER DATABASE ---
+const farmersDB: { [key: string]: { name: string, village: string } } = {
+    "FARMER_001": { name: "Sarath", village: "Tindivanam" },
+    "FARMER_002": { name: "Priya", village: "Chembarambakkam" },
+};
+
+// --- MAIN APP COMPONENT ---
 export default function App() {
-  const [view, setView] = useState<'mint' | 'dashboard'>('mint');
-  const [farmerName, setFarmerName] = useState<string>("");
-  const [weight, setWeight] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isScanning, setIsScanning] = useState<boolean>(false); // New state for QR scanner
+  const [role, setRole] = useState<string | null>(null);
+  const [password, setPassword] = useState<string>("");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [lang, setLang] = useState<'en' | 'ta'>('en');
+  const t = translations[lang];
 
-  const handleSubmit = async () => {
-    if (!farmerName || !weight) {
-      setStatus("Please fill out all fields.");
-      return;
-    }
-    setIsLoading(true);
-    setStatus("Submitting to the blockchain...");
-
-    try {
-      const response = await fetch('http://localhost:3001/mint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ farmerName, weight })
-      });
-      const result = await response.json();
-      if (response.ok) {
-        setStatus(`✅ Success! View Transaction: <a href="${result.url}" target="_blank">Click Here</a>`);
-        setFarmerName("");
-        setWeight("");
+  const handleAuth = () => {
+      if ((role === 'collector' && password === 'collector123') || (role === 'owner' && password === 'owner123')) {
+          setIsAuthenticated(true);
       } else {
-        throw new Error(result.error || "An unknown error occurred.");
+          alert("Incorrect Password");
       }
-    } catch (error: any) {
-      setStatus(`❌ Error: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
-  const handleScan = (result: any, error: any) => {
-    if (!!result) {
-      setFarmerName(result?.text); // Populate farmerName with QR content
-      setStatus("QR Code Scanned Successfully!");
-      setIsScanning(false); // Hide scanner after successful scan
-    }
+  if (!role) {
+      return (
+          <div>
+              <style>{styles}</style>
+              <div className="container">
+                  <div className="header">
+                      <h1 className="title">🐮 {t.title}</h1>
+                  </div>
+                  <div className="role-selector">
+                      <button className="role-button" onClick={() => setRole('farmer')}>{t.farmer}</button>
+                      <button className="role-button" onClick={() => setRole('collector')}>{t.collector}</button>
+                      <button className="role-button" onClick={() => setRole('owner')}>{t.owner}</button>
+                  </div>
+              </div>
+          </div>
+      );
+  }
 
-    if (!!error) {
-      // console.info(error); // Log errors for debugging if needed
-      // To avoid spamming status with constant errors, only show if serious or for development.
-      // setStatus(`QR Scanner Error: ${error.message || 'Check camera permissions.'}`);
-    }
-  };
+  if ((role === 'collector' || role === 'owner') && !isAuthenticated) {
+      return (
+          <div>
+              <style>{styles}</style>
+              <div className="container">
+                  <h2>Enter {role} Password</h2>
+                  <input type="password" placeholder={t.password} value={password} onChange={(e) => setPassword(e.target.value)} className="input-field" />
+                  <button onClick={handleAuth} className="submit-button">{t.enter}</button>
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div>
       <style>{styles}</style>
       <div className="container">
         <div className="header">
-          <h1 className="title">🐮 DungTrace</h1>
-          <p className="description">
-            A transparent supply chain for agricultural exports.
-          </p>
+            <h1 className="title">🐮 {t.title}</h1>
         </div>
-
-        {/* --- NAVIGATION BUTTONS --- */}
-        <div className="nav-buttons">
-            <button
-                onClick={() => setView('mint')}
-                className={`nav-button ${view === 'mint' ? 'active' : ''}`}
-            >
-                Register Batch
-            </button>
-            <button
-                onClick={() => setView('dashboard')}
-                className={`nav-button ${view === 'dashboard' ? 'active' : ''}`}
-            >
-                Owner's Dashboard
-            </button>
-        </div>
-
-        {/* --- CONDITIONAL RENDERING --- */}
-        {view === 'mint' ? (
-            <div className="mint-form">
-                <h2>Register a New Batch</h2>
-
-                {!isScanning ? (
-                    <>
-                        {/* Farmer's Name Input Field */}
-                        <input
-                            type="text"
-                            placeholder="Farmer's Name or Batch ID (can be scanned)"
-                            value={farmerName}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFarmerName(e.target.value)}
-                            className="input-field"
-                        />
-                        {/* QR Scan Button */}
-                        <button
-                            onClick={() => setIsScanning(true)}
-                            className="qr-button"
-                            disabled={isLoading}
-                        >
-                            Scan QR Code
-                        </button>
-
-                        <input
-                            type="number"
-                            placeholder="Weight (KG)"
-                            value={weight}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
-                            className="input-field"
-                        />
-                        <button
-                            onClick={handleSubmit}
-                            disabled={isLoading}
-                            className="submit-button"
-                        >
-                            {isLoading ? "Submitting..." : "Create Batch Record"}
-                        </button>
-                    </>
-                ) : (
-                    <div className="qr-scanner-container">
-                        <p className="qr-scanner-info">Position QR code within the frame to scan.</p>
-                        <QrReader
-                            onResult={handleScan}
-                            scanDelay={300} // milliseconds
-                            constraints={{ facingMode: 'environment' }} // Prefer rear camera
-                            style={{ width: '100%' }}
-                            // You can add styles or a wrapper div if needed
-                        />
-                        <button
-                            onClick={() => setIsScanning(false)}
-                            className="cancel-qr-button"
-                        >
-                            Cancel Scan
-                        </button>
-                    </div>
-                )}
-
-                {status && (
-                    <p className="status-message" dangerouslySetInnerHTML={{ __html: status }}></p>
-                )}
+        <div className="top-bar">
+            <div className="nav-buttons">
+                <button onClick={() => setRole('farmer')} className={`nav-button ${role === 'farmer' ? 'active' : ''}`}>{t.farmer}</button>
+                <button onClick={() => setRole('collector')} className={`nav-button ${role === 'collector' ? 'active' : ''}`}>{t.collector}</button>
+                <button onClick={() => setRole('owner')} className={`nav-button ${role === 'owner' ? 'active' : ''}`}>{t.owner}</button>
             </div>
-        ) : (
-            <Dashboard />
-        )}
+            <select className="lang-select" value={lang} onChange={(e) => setLang(e.target.value as any)}>
+                <option value="en">English</option>
+                <option value="ta">தமிழ் (Tamil)</option>
+                <option value="hi">हिन्दी (Hindi)</option>
+                <option value="te">తెలుగు (Telugu)</option>
+                <option value="kn">ಕನ್ನಡ (Kannada)</option>
+            </select>
+        </div>
+        {role === 'farmer' && <FarmerView t={t} />}
+        {role === 'collector' && <CollectorView t={t} />}
+        {role === 'owner' && <Dashboard />}
       </div>
     </div>
   );
 }
+
+// --- FARMER COMPONENT ---
+const FarmerView = ({ t }: { t: any }) => {
+    const [isScanning, setIsScanning] = useState(false);
+    const [scannedData, setScannedData] = useState<{ id: string, name: string, village: string } | null>(null);
+    const [weight, setWeight] = useState("");
+    const [cowBreed, setCowBreed] = useState("Gir");
+    const [feedType, setFeedType] = useState("Grass-Fed");
+    const [status, setStatus] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+    const [location, setLocation] = useState<{lat: number, lon: number} | null>(null);
+    const [mintResult, setMintResult] = useState<{url: string, tokenId: string} | null>(null);
+
+    useEffect(() => {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+            () => setStatus("Please enable location.")
+        );
+    }, []);
+
+    const handleScan = (result: any) => {
+        if (result) {
+            const farmerId = result.text;
+            const farmerInfo = farmersDB[farmerId];
+            if (farmerInfo) {
+                setScannedData({ id: farmerId, ...farmerInfo });
+                setIsScanning(false);
+            } else {
+                setStatus("Invalid Farmer QR Code.");
+                setIsScanning(false);
+            }
+        }
+    };
+
+    const handleMint = async () => {
+        if (!scannedData || !weight || !location) {
+            setStatus("Please scan your ID and enter weight.");
+            return;
+        }
+        setIsLoading(true);
+        setStatus(t.submitting);
+        setMintResult(null);
+        try {
+            const response = await fetch('https://cow-dung.onrender.com/mint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ farmerId: scannedData.id, weight, cowBreed, feedType, latitude: location.lat, longitude: location.lon })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setStatus(`✅ ${t.success}`);
+                setMintResult({url: result.url, tokenId: result.tokenId});
+                setScannedData(null); setWeight("");
+            } else { throw new Error(result.error); }
+        } catch (error: any) {
+            setStatus(`❌ Error: ${error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="form-container">
+            <h2>{t.addLoad}</h2>
+            {!scannedData && !mintResult && (
+                <button onClick={() => { setStatus(''); setIsScanning(true); }} className="submit-button">{t.scanFarmerQR}</button>
+            )}
+            {isScanning && (
+                <div className="qr-section">
+                    <QrReader onResult={handleScan} constraints={{ facingMode: 'environment' }} />
+                    <button onClick={() => setIsScanning(false)} style={{ marginTop: '1rem' }}>Cancel</button>
+                </div>
+            )}
+            {scannedData && (
+                <div>
+                    <p><strong>Farmer:</strong> {scannedData.name}, {scannedData.village}</p>
+                    <input type="number" placeholder={t.weight} value={weight} onChange={(e) => setWeight(e.target.value)} className="input-field" />
+                    <select className="select-field" value={cowBreed} onChange={(e) => setCowBreed(e.target.value)}>
+                        <option value="Gir">Gir</option>
+                        <option value="Sahiwal">Sahiwal</option>
+                    </select>
+                    <select className="select-field" value={feedType} onChange={(e) => setFeedType(e.target.value)}>
+                        <option value="Grass-Fed">Grass-Fed</option>
+                        <option value="Organic">Organic Feed</option>
+                    </select>
+                    <button onClick={handleMint} disabled={isLoading || !location} className="submit-button">{isLoading ? t.submitting : t.createRecord}</button>
+                </div>
+            )}
+            {status && <p className={`status-message ${status.startsWith('Error') || status.startsWith('Please') ? 'status-error' : 'status-success'}`} dangerouslySetInnerHTML={{__html: status.replace(/Token ID: \w+/, '')}}></p>}
+            {mintResult && (
+                <div className="qr-section">
+                    <h3>QR Code for this Batch:</h3>
+                    <QRCode value={mintResult.tokenId} />
+                    <p style={{marginTop: '1rem'}}>
+                        Token ID: {mintResult.tokenId} <br/>
+                        <a href={mintResult.url} target="_blank" rel="noopener noreferrer">View Transaction</a>
+                    </p>
+                    <button onClick={() => setMintResult(null)} style={{marginTop: '1rem'}}>Register Another Batch</button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// --- COLLECTOR COMPONENT ---
+const CollectorView = ({ t }: { t: any }) => {
+    const [pendingBatches, setPendingBatches] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [status, setStatus] = useState("");
+    const [selectedBatch, setSelectedBatch] = useState<any | null>(null);
+    const [moisture, setMoisture] = useState("");
+    const [purity, setPurity] = useState("");
+    const [collectorName, setCollectorName] = useState("");
+
+    const fetchPending = useCallback(async () => {
+        setIsLoading(true);
+        setStatus("Fetching pending batches...");
+        try {
+            const response = await fetch('https://cow-dung.onrender.com/get-pending-batches');
+            if (!response.ok) throw new Error("Server connection failed.");
+            const data = await response.json();
+            setPendingBatches(data);
+            setStatus(data.length === 0 ? "No pending collections." : "");
+        } catch (e: any) {
+            setStatus(`❌ Error: ${e.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchPending();
+    }, [fetchPending]);
+
+    const calculateQualityScore = () => {
+        const moistureNum = parseFloat(moisture);
+        const purityNum = parseFloat(purity);
+        if (isNaN(moistureNum) || isNaN(purityNum) || moistureNum < 0 || moistureNum > 100 || purityNum < 1 || purityNum > 10) {
+            return "Invalid Input";
+        }
+        // Simple weighted average: Purity is more important.
+        const score = (purityNum * 0.7) + ((10 - (moistureNum / 10)) * 0.3);
+        return score.toFixed(1);
+    };
+
+    const handleUpdate = async () => {
+        const qualityScore = calculateQualityScore();
+        if (!selectedBatch || qualityScore === "Invalid Input" || !collectorName) {
+            setStatus("Please provide valid inputs for all fields.");
+            return;
+        }
+        setIsLoading(true);
+        setStatus(t.updating);
+        try {
+            const response = await fetch('https://cow-dung.onrender.com/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tokenId: selectedBatch.id, qualityScore, collectorName })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                setStatus(`✅ Batch updated successfully!`);
+                setSelectedBatch(null); setMoisture(""); setPurity(""); setCollectorName("");
+                fetchPending();
+            } else { throw new Error(result.error); }
+        } catch (error: any) {
+            setStatus(`❌ Error: ${error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (selectedBatch) {
+        return (
+            <div className="form-container">
+                <h2>{t.verifyBatch}: {selectedBatch.name}</h2>
+                <input type="number" placeholder={t.moisture} value={moisture} onChange={(e) => setMoisture(e.target.value)} className="input-field" />
+                <input type="number" placeholder={t.purity} value={purity} onChange={(e) => setPurity(e.target.value)} className="input-field" />
+                <input type="text" placeholder={t.collectorName} value={collectorName} onChange={(e) => setCollectorName(e.target.value)} className="input-field" />
+                <div className="quality-score-display">
+                    {t.qualityScore}: {calculateQualityScore()} / 10
+                </div>
+                <button onClick={handleUpdate} disabled={isLoading} className="submit-button">{isLoading ? t.updating : t.updateRecord}</button>
+                <button onClick={() => setSelectedBatch(null)} style={{marginTop: '1rem', backgroundColor: '#6b7280'}} className="submit-button">Back to List</button>
+                {status && <p className={`status-message ${status.startsWith('Error') || status.startsWith('Please') ? 'status-error' : 'status-success'}`}>{status}</p>}
+            </div>
+        );
+    }
+
+    return (
+        <div className="form-container">
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <h2>{t.pendingCollections}</h2>
+                <button onClick={fetchPending} disabled={isLoading} className="submit-button refresh-button" style={{width: 'auto'}}>{t.refresh}</button>
+            </div>
+            {isLoading && !pendingBatches.length ? <p>Loading...</p> : (
+                <ul className="pending-list">
+                    {pendingBatches.length > 0 ? pendingBatches.map((batch: any) => (
+                        <li key={batch.id} className="pending-item" onClick={() => setSelectedBatch(batch)}>
+                            <div>
+                                <strong>{batch.name}</strong><br/>
+                                <span>Token ID: {batch.id.slice(0, 10)}...</span>
+                            </div>
+                            <span style={{fontWeight: 600, color: '#f59e0b'}}>PENDING</span>
+                        </li>
+                    )) : <p>No pending collections found.</p>}
+                </ul>
+            )}
+            {status && <p className={`status-message ${status.startsWith('Error') || status.startsWith('Could') ? 'status-error' : 'status-success'}`}>{status}</p>}
+        </div>
+    );
+};
