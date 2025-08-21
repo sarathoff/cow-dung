@@ -27,27 +27,24 @@ const sdk = new ThirdwebSDK(
   { clientId: CLIENT_ID, secretKey: SECRET_KEY }
 );
 
-// --- Mock Farmer Database ---
-const farmersDB = {
-    "FARMER_001": { name: "Sarath", village: "Tindivanam" },
-    "FARMER_002": { name: "Priya", village: "Chembarambakkam" },
-};
-
 // API endpoint to MINT a new batch (Farmer's Action)
 app.post("/mint", async (req, res) => {
   try {
-    const { farmerId, weight, cowBreed, feedType, latitude, longitude } = req.body;
-    const farmer = farmersDB[farmerId];
-    if (!farmer) {
-        return res.status(404).json({ error: "Farmer ID not found." });
+    // **FIX:** Now using farmerName and village directly from the request
+    const { farmerId, farmerName, village, weight, cowBreed, feedType, latitude, longitude } = req.body;
+    
+    // Basic validation
+    if (!farmerId || !farmerName || !village) {
+        return res.status(400).json({ error: "Farmer details from QR code are missing." });
     }
-    console.log(`Minting for: ${farmer.name} from ${farmer.village}`);
+
+    console.log(`Minting for: ${farmerName} from ${village}`);
 
     const contract = await sdk.getContract(CONTRACT_ADDRESS);
     const properties = [
         { trait_type: "Farmer ID", value: farmerId },
-        { trait_type: "Farmer Name", value: farmer.name },
-        { trait_type: "Village", value: farmer.village },
+        { trait_type: "Farmer Name", value: farmerName },
+        { trait_type: "Village", value: village },
         { trait_type: "Weight (KG)", value: weight.toString() },
         { trait_type: "Cow Breed", value: cowBreed },
         { trait_type: "Feed Type", value: feedType },
@@ -57,7 +54,7 @@ app.post("/mint", async (req, res) => {
         { trait_type: "Status", value: "Registered by Farmer" },
     ];
     const metadata = {
-      name: `Batch from ${farmer.name}`,
+      name: `Batch from ${farmerName}`,
       description: "A batch of organic cow dung registered on DungTrace.",
       image: "ipfs://bafkreihg53o5v2f2y2xj2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j/placeholder.png",
       properties: properties,
@@ -121,7 +118,7 @@ app.get("/get-batches", async (req, res) => {
     }
 });
 
-// --- NEW: API endpoint to GET PENDING batches (Collector's Action) ---
+// API endpoint to GET PENDING batches (Collector's Action)
 app.get("/get-pending-batches", async (req, res) => {
     try {
         const contract = await sdk.getContract(CONTRACT_ADDRESS);
@@ -129,7 +126,6 @@ app.get("/get-pending-batches", async (req, res) => {
         const allNfts = await contract.erc721.getAll();
         const nfts = allNfts.filter(nft => nft.owner.toLowerCase() === ownerAddress.toLowerCase());
         
-        // Filter for NFTs that have the status "Registered by Farmer"
         const pendingBatches = nfts.filter(nft => {
             if (!nft.metadata.properties) return false;
             const statusProp = nft.metadata.properties.find(p => p.trait_type === "Status");
