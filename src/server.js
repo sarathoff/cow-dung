@@ -12,7 +12,8 @@ const app = express();
 app.use(express.json());
 app.use(cors()); // Allows your React app to communicate with this server
 
-
+// 3. --- CONFIGURATION ---
+// These values will be read from your .env file for security
 const PRIVATE_KEY = process.env.VITE_WALLET_PRIVATE_KEY;
 const CONTRACT_ADDRESS = process.env.VITE_CONTRACT_ADDRESS;
 const CLIENT_ID = process.env.VITE_TEMPLATE_CLIENT_ID;
@@ -42,24 +43,29 @@ const sdk = new ThirdwebSDK(
 // 5. API endpoint to MINT a new batch
 app.post("/mint", async (req, res) => {
   try {
-    // ** NEW: Now accepting location data **
     const { farmerName, weight, latitude, longitude } = req.body;
     console.log(`Minting for: ${farmerName}, Weight: ${weight}, Location: ${latitude},${longitude}`);
 
     const contract = await sdk.getContract(CONTRACT_ADDRESS);
 
+    // Start with the base properties
+    const properties = [
+        { trait_type: "Weight (KG)", value: weight.toString() },
+        { trait_type: "Origin", value: "Tindivanam Farms" },
+        { trait_type: "Registration Timestamp", value: new Date().toLocaleString("en-IN") },
+    ];
+
+    // ** FIX: Only add location properties if they exist **
+    if (latitude && longitude) {
+        properties.push({ trait_type: "Latitude", value: latitude.toString() });
+        properties.push({ trait_type: "Longitude", value: longitude.toString() });
+    }
+
     const metadata = {
       name: `Batch from ${farmerName}`,
       description: "A high-quality batch of organic cow dung.",
       image: "ipfs://bafkreihg53o5v2f2y2xj2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j2j/placeholder.png",
-      properties: [
-        { trait_type: "Weight (KG)", value: weight.toString() },
-        { trait_type: "Origin", value: "Tindivanam Farms" },
-        // ** NEW: Adding GPS coordinates to the NFT **
-        { trait_type: "Latitude", value: latitude.toString() },
-        { trait_type: "Longitude", value: longitude.toString() },
-        { trait_type: "Registration Timestamp", value: new Date().toLocaleString("en-IN") },
-      ],
+      properties: properties, // Use the new properties array
     };
 
     const mintToAddress = await sdk.wallet.getAddress(); 
@@ -117,8 +123,10 @@ app.get("/get-batches", async (req, res) => {
         const contract = await sdk.getContract(CONTRACT_ADDRESS);
         const ownerAddress = await sdk.wallet.getAddress();
         
+        // ** FIX: Using a more reliable method to fetch NFTs **
+        // First, get all NFTs in the collection
         const allNfts = await contract.erc721.getAll();
-
+        // Then, filter them to find the ones owned by our server's wallet
         const nfts = allNfts.filter(nft => nft.owner.toLowerCase() === ownerAddress.toLowerCase());
 
         const batchDetails = nfts.map(nft => ({
@@ -136,7 +144,7 @@ app.get("/get-batches", async (req, res) => {
 });
 
 // 8. Start the server
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001; // Use Render's port if available
 app.listen(PORT, () => {
   console.log(`✅ Server is running and listening on port ${PORT}`);
 });
